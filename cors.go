@@ -60,10 +60,11 @@ var (
 
 func init() {
 	AccessControlDefaults = AccessControl{
-		AllowOrigin:  "*",
-		MaxAge:       600,
-		AllowMethods: []string{"GET", "POST", "DELETE"},
-		AllowHeaders: []string{"Accept", "Accept-Language", "Content-Type", "Authorization", "If-None-Match"},
+		AllowOrigin:      "*",
+		AllowCredentials: true,
+		MaxAge:           600,
+		AllowMethods:     []string{"GET", "POST", "DELETE"},
+		AllowHeaders:     []string{"Accept", "Accept-Language", "Content-Type", "Authorization", "If-None-Match"},
 		// Cache-Control, Content-Language, Content-Type, Expires, Last-Modified and Pragma are allowed by cors defaults
 		ExposeHeaders: []string{"E-Tag", "Location", "Link"},
 	}
