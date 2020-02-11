@@ -46,7 +46,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ac := AccessControlDefaults
 			ac.AllowMethods = route.Methods()
 			ac.AllowMethods = append(ac.AllowMethods, "OPTIONS")
-			SetAllCORSHeaders(w, ac)
+			SetAllCORSHeaders(w, req, ac)
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}

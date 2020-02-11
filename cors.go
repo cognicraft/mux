@@ -6,10 +6,41 @@ import (
 	"strings"
 )
 
-func SetAllCORSHeaders(w http.ResponseWriter, ac AccessControl) {
-	headers := ac.Headers()
-	for k, v := range headers {
-		w.Header().Set(k, v)
+func SetAllCORSHeaders(w http.ResponseWriter, r *http.Request, ac AccessControl) {
+	origin := r.Header.Get(HeaderOrigin)
+	if origin == "" {
+		return
+	}
+	if ac.AllowOrigin != "" {
+		if ac.AllowOrigin == "*" {
+			if ac.AllowCredentials {
+				w.Header().Set(HeaderAccessControlAllowOrigin, origin)
+				w.Header().Add(HeaderVary, HeaderOrigin)
+			} else {
+				w.Header().Set(HeaderAccessControlAllowOrigin, ac.AllowOrigin)
+			}
+		} else {
+			w.Header().Set(HeaderAccessControlAllowOrigin, ac.AllowOrigin)
+			w.Header().Add(HeaderVary, HeaderOrigin)
+		}
+	}
+	if len(ac.ExposeHeaders) > 0 {
+		expose := strings.Join(ac.ExposeHeaders, ", ")
+		w.Header().Set(HeaderAccessControlExposeHeaders, expose)
+	}
+	if ac.MaxAge > 0 {
+		w.Header().Set(HeaderAccessControlMaxAge, fmt.Sprintf("%d", ac.MaxAge))
+	}
+	if ac.AllowCredentials {
+		w.Header().Set(HeaderAccessControlAllowCredentials, fmt.Sprintf("%t", ac.AllowCredentials))
+	}
+	if len(ac.AllowMethods) > 0 {
+		methods := strings.Join(ac.AllowMethods, ", ")
+		w.Header().Set(HeaderAccessControlAllowMethods, methods)
+	}
+	if len(ac.AllowHeaders) > 0 {
+		hs := strings.Join(ac.AllowHeaders, ", ")
+		w.Header().Set(HeaderAccessControlAllowHeaders, hs)
 	}
 }
 
@@ -32,7 +63,7 @@ func CORS(ac AccessControl) Decorator {
 					// TODO: check validity of acrm -> invalid error
 					// acrh := r.Header.Get(HeaderAccessControlRequestHeaders)
 					// TODO: check validity of acrh -> invalid error
-					SetAllCORSHeaders(w, ac)
+					SetAllCORSHeaders(w, r, ac)
 					w.WriteHeader(http.StatusNoContent)
 					return
 				}
@@ -43,7 +74,17 @@ func CORS(ac AccessControl) Decorator {
 				w.Header().Set(HeaderAccessControlExposeHeaders, expose)
 			}
 			if ac.AllowOrigin != "" {
-				w.Header().Set(HeaderAccessControlAllowOrigin, ac.AllowOrigin)
+				if ac.AllowOrigin == "*" {
+					if ac.AllowCredentials {
+						w.Header().Set(HeaderAccessControlAllowOrigin, origin)
+						w.Header().Add(HeaderVary, HeaderOrigin)
+					} else {
+						w.Header().Set(HeaderAccessControlAllowOrigin, ac.AllowOrigin)
+					}
+				} else {
+					w.Header().Set(HeaderAccessControlAllowOrigin, ac.AllowOrigin)
+					w.Header().Add(HeaderVary, HeaderOrigin)
+				}
 			}
 			if ac.AllowCredentials {
 				w.Header().Set(HeaderAccessControlAllowCredentials, fmt.Sprintf("%t", ac.AllowCredentials))
@@ -92,30 +133,4 @@ type AccessControl struct {
 	AllowCredentials bool
 	AllowMethods     []string
 	AllowHeaders     []string
-}
-
-func (ac AccessControl) Headers() map[string]string {
-	headers := map[string]string{}
-	if ac.AllowOrigin != "" {
-		headers[HeaderAccessControlAllowOrigin] = ac.AllowOrigin
-	}
-	if len(ac.ExposeHeaders) > 0 {
-		expose := strings.Join(ac.ExposeHeaders, ", ")
-		headers[HeaderAccessControlExposeHeaders] = expose
-	}
-	if ac.MaxAge > 0 {
-		headers[HeaderAccessControlMaxAge] = fmt.Sprintf("%d", ac.MaxAge)
-	}
-	if ac.AllowCredentials {
-		headers[HeaderAccessControlAllowCredentials] = fmt.Sprintf("%t", ac.AllowCredentials)
-	}
-	if len(ac.AllowMethods) > 0 {
-		methods := strings.Join(ac.AllowMethods, ", ")
-		headers[HeaderAccessControlAllowMethods] = methods
-	}
-	if len(ac.AllowHeaders) > 0 {
-		hs := strings.Join(ac.AllowHeaders, ", ")
-		headers[HeaderAccessControlAllowHeaders] = hs
-	}
-	return headers
 }
